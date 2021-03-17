@@ -122,7 +122,8 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
             });
             // Get the total queued items
             var queuedItems = new List<MyProductionItem>();
-            assemblerBlocks.ForEach(delegate (IMyAssembler a)
+            assemblerBlocks.Where(a => a.Mode == MyAssemblerMode.Assembly)
+                .ForEach(delegate (IMyAssembler a)
             {
                 var q = new List<MyProductionItem>();
                 a.GetQueue(q);
@@ -183,6 +184,7 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
             ).ToList<IMyEntity>();
         }
 
+        // Returns a list of assemblers that are on the current grid and are in assembly mode.
         private List<IMyAssembler> GetAssemblerBlocks(IMyTerminalBlock parentGridBlock)
         {
             var blocks = new List<IMyAssembler>();
