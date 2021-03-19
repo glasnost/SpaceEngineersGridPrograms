@@ -84,7 +84,7 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
                 { VRage.MyTuple.Create("MyObjectBuilder_Component", "Reactor"), new ItemDef() },
                 { VRage.MyTuple.Create("MyObjectBuilder_Component", "SmallTube"), new ItemDef() },
                 { VRage.MyTuple.Create("MyObjectBuilder_Component", "SolarCell"), new ItemDef() },
-                { VRage.MyTuple.Create("MyObjectBuilder_Component", "SteelPlate"), new ItemDef(5) },
+                { VRage.MyTuple.Create("MyObjectBuilder_Component", "SteelPlate"), new ItemDef() },
                 { VRage.MyTuple.Create("MyObjectBuilder_Component", "Superconductor"), new ItemDef() },
                 { VRage.MyTuple.Create("MyObjectBuilder_Component", "Thrust"), new ItemDef() }
             };
@@ -122,7 +122,7 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
             });
             // Get the total queued items
             var queuedItems = new List<MyProductionItem>();
-            assemblerBlocks.Where(a => a.Mode == MyAssemblerMode.Assembly)
+            assemblerBlocks.Where(a => a.Mode == MyAssemblerMode.Assembly).ToList<IMyAssembler>()
                 .ForEach(delegate (IMyAssembler a)
             {
                 var q = new List<MyProductionItem>();
@@ -164,7 +164,7 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
                     MyDefinitionId bp = new MyDefinitionId();
                     if (MyDefinitionId.TryParse("MyObjectBuilder_BlueprintDefinition/" + itemName, out bp))
                     {
-                        //assemblerBlocks[0].AddQueueItem(bp, (decimal)toQueue);
+                        assemblerBlocks[0].AddQueueItem(bp, (decimal)toQueue);
                     }
                 }
             }
