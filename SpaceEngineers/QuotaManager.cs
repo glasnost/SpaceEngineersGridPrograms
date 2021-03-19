@@ -102,14 +102,14 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
             var localItemDict = new Dictionary<VRage.MyTuple<string, string>, ItemDef>(itemDict);
 
             // Enumerate the blocks that have inventory
-            inventoryBlocks.ForEach(delegate (IMyEntity e)
+            foreach (var e in inventoryBlocks)
             {
                 var items = new List<MyInventoryItem>();
                 for (int i = 0; i < e.InventoryCount; i++)
                 {
                     e.GetInventory(i).GetItems(items);
                     ItemDef thisItem;
-                    items.ForEach(delegate (MyInventoryItem item)
+                    foreach (var item in items)
                     {
                         var itemKey = VRage.MyTuple.Create(item.Type.TypeId, item.Type.SubtypeId);
                         if (localItemDict.TryGetValue(itemKey, out thisItem))
@@ -117,17 +117,17 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
                             thisItem.Available += (float)item.Amount;
                             localItemDict[itemKey] = thisItem;
                         }
-                    });
+                    }
                 }
-            });
+            }
+
             // Get the total queued items
             var queuedItems = new List<MyProductionItem>();
-            assemblerBlocks.Where(a => a.Mode == MyAssemblerMode.Assembly).ToList<IMyAssembler>()
-                .ForEach(delegate (IMyAssembler a)
+            foreach (var a in assemblerBlocks.Where(a => a.Mode == MyAssemblerMode.Assembly))
             {
                 var q = new List<MyProductionItem>();
                 a.GetQueue(q);
-                q.ForEach(delegate (MyProductionItem i)
+                foreach (var i in q)
                 {
                     string iname = i.BlueprintId.SubtypeName;
                     if (iname.EndsWith("Component"))
@@ -141,8 +141,8 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
                         thisItem.Queued += (int)i.Amount;
                         localItemDict[itemKey] = thisItem;
                     }
-                });
-            });
+                }
+            }
 
             // Find any components that need to be assembled
             StringBuilder output = new StringBuilder(256);
@@ -168,7 +168,7 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
                     }
                 }
             }
-            output.Append("Last runtime: " + this.Runtime.LastRunTimeMs + "ms");
+            output.Append("Last runtime: " + Math.Round(this.Runtime.LastRunTimeMs,2) + "ms");
             Me.GetSurface(0).WriteText(output);
         }
 
@@ -184,7 +184,7 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
             ).ToList<IMyEntity>();
         }
 
-        // Returns a list of assemblers that are on the current grid and are in assembly mode.
+        // Returns a list of assemblers that are on the current grid.
         private List<IMyAssembler> GetAssemblerBlocks(IMyTerminalBlock parentGridBlock)
         {
             var blocks = new List<IMyAssembler>();
