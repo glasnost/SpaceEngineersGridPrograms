@@ -11,6 +11,7 @@ using VRage.Collections;
 using Sandbox.ModAPI.Ingame;
 using VRage.Game.Components;
 using VRage.Game.ModAPI.Ingame;
+using VRage.Game.ModAPI.Ingame.Utilities;
 using Sandbox.ModAPI.Interfaces;
 using Sandbox.Game.EntityComponents;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -23,12 +24,17 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
         // Constants
         static Int32 TERMWIDTH = 80;
         static string DISPLAYNAME = "Component Monitor LCD";
+        static string GENERAL_SECTION_NAME = "general";
+        static string QUOTA_SECTION_NAME = "quota";
 
         // Globals
         private List<IMyEntity> inventoryBlocks;
         private List<IMyAssembler> assemblerBlocks;
         private IMyTextPanel displayScreen;
         private readonly Dictionary<VRage.MyTuple<string, string>, ItemDef> itemDict;
+        private MyIni ini = new MyIni();
+        private MyIniParseResult iniParseResult;
+        private bool shouldRun = false;
 
         // Struct for defining an item to track.
         private struct ItemDef
@@ -88,16 +94,19 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
                 { VRage.MyTuple.Create("MyObjectBuilder_Component", "Superconductor"), new ItemDef() },
                 { VRage.MyTuple.Create("MyObjectBuilder_Component", "Thrust"), new ItemDef() }
             };
+            GetQuota();
         }
 
         public void Save()
         {
             inventoryBlocks = GetInventoryBlocks(Me);
             assemblerBlocks = GetAssemblerBlocks(Me);
+            GetQuota();
         }
 
         public void Main(string argument, UpdateType updateSource)
         {
+            GetQuota();
             // Copy to reset the values
             var localItemDict = new Dictionary<VRage.MyTuple<string, string>, ItemDef>(itemDict);
 
@@ -146,14 +155,18 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
 
             // Find any components that need to be assembled
             StringBuilder output = new StringBuilder(256);
+            MyDefinitionId bp = new MyDefinitionId();
             foreach (var key in localItemDict.Keys)
             {
                 var item = localItemDict[key];
                 string itemName = key.Item2;
                 int toQueue = (int)item.Min - ((int)item.Available + (int)item.Queued);
-                if (toQueue > 0)
+                if (0 > ((int)item.Available - (int)item.Min))
                 {
                     output.Append(itemName + ": " + (int)item.Min + " min/" + (int)item.Available + " avai/" + (int)item.Queued + " q'd->" + toQueue + "to add\n");
+                }
+                if (toQueue > 0)
+                {
                     if (itemName == "Computer" || itemName == "Construction"
                         || itemName == "Detector" || itemName == "Explosives"
                         || itemName == "Girder" || itemName == "GravityGenerator"
@@ -161,15 +174,57 @@ namespace SpaceEngineers.UWBlockPrograms.InventoryManager {
                         || itemName == "RadioCommunication" || itemName == "Reactor"
                         || itemName == "Thrust")
                     { itemName += "Component"; }
-                    MyDefinitionId bp = new MyDefinitionId();
-                    if (MyDefinitionId.TryParse("MyObjectBuilder_BlueprintDefinition/" + itemName, out bp))
+                    if (shouldRun && MyDefinitionId.TryParse("MyObjectBuilder_BlueprintDefinition/" + itemName, out bp))
                     {
                         assemblerBlocks[0].AddQueueItem(bp, (decimal)toQueue);
                     }
                 }
             }
+            if (!iniParseResult.Success)
+            {
+                output.Append("Failed config parse: " + iniParseResult.ToString() + '\n');
+            }
+            output.Append("You can edit the quotas from the Custom Data of this block.\n");
             output.Append("Last runtime: " + Math.Round(this.Runtime.LastRunTimeMs,2) + "ms");
             Me.GetSurface(0).WriteText(output);
+        }
+
+        // Retrives the desired quota from the saved location.
+        private void GetQuota()
+        {
+            if (Me.CustomData == "")
+            {
+                SetDefaultSettings();
+            }
+            if (!ini.TryParse(Me.CustomData, out iniParseResult))
+            {
+                return;
+            }
+            shouldRun = ini.Get(GENERAL_SECTION_NAME, "should_run").ToBoolean();
+            var keys = itemDict.Keys.Where(k => k.Item1 == "MyObjectBuilder_Component").ToList();
+            ItemDef item = new ItemDef();
+            foreach (var k in keys)
+            {
+                if (!ini.ContainsKey(QUOTA_SECTION_NAME, k.Item2))
+                {
+                    ini.Set(QUOTA_SECTION_NAME, k.Item2, 0f);
+                }
+                item = itemDict[k];
+                item.Min = ini.Get(QUOTA_SECTION_NAME, k.Item2).ToSingle();
+                itemDict[k] = item;
+            }
+            Me.CustomData = ini.ToString();
+        }
+
+        // Writes a default config to the custom data.
+        private void SetDefaultSettings()
+        {
+            ini.AddSection(GENERAL_SECTION_NAME);
+            ini.Set(GENERAL_SECTION_NAME, "should_run", false);
+            ini.SetComment(GENERAL_SECTION_NAME, "should_run", "If true, script will actually queue items. Script always displays what it would queue.");
+            ini.AddSection(QUOTA_SECTION_NAME);
+            ini.SetSectionComment(QUOTA_SECTION_NAME, "Set the minimum of each component that you want below.");
+            Me.CustomData = ini.ToString();
         }
 
         // Returns all blocks that have an inventory on the same grid as parentGridBlock
