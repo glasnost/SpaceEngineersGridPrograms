@@ -75,11 +75,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BatteryMonitor.cs" />
     <Compile Include="OxygenFarm.cs" />
-    <Compile Include="BatteryMonitorEE.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WeightWarner.cs" />
+    <Compile Include="QuotaManager.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
