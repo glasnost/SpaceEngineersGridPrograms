@@ -23,6 +23,8 @@ namespace SpaceEngineers.UWBlockPrograms.BatteryMonitor {
 static Int32 TERMWIDTH = 80;
 static string DISPLAYNAME = "Battery Monitor LCD";
 
+private string terminalBanner;
+
 private List<IMyBatteryBlock> batteryBlocks;
 private IMyTextPanel displayScreen;
 
@@ -32,12 +34,19 @@ public Program()
     // Set update tickrate
     Runtime.UpdateFrequency = UpdateFrequency.Update100;
 
-    // Initialize output screen by name
+    // Initialize output screen by name in text mode
     displayScreen = GridTerminalSystem.GetBlockWithName(DISPLAYNAME) as IMyTextPanel;
     displayScreen.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
 
     // Initialize batteries with output screen as reference grid
     batteryBlocks = DiscoverBatteries(displayScreen);
+
+    // Prepare terminal header according to terminal width
+    terminalBanner = MakeTerminalBanner(
+        "Battery Monitor 3.1: Array Status", 
+        TERMWIDTH
+    );
+
 }
 
 public void Save()
@@ -80,18 +89,18 @@ public void Main(string args)
     // Determine whether or not array is charging or discharging, update
     // status strings accordingly for templating.
     if(arrayPercentCharged == 100) {
-        arrayChargeDirection = "-----------------------------------------------------------";
+        arrayChargeDirection = MakeSeparator('-', (TERMWIDTH / 100) * 75);
         arrayRuntimeStatus = "Array fully charged: Power drain minimal";
 
     } else if (arrayCurrentInput > arrayCurrentOutput) {
-        arrayChargeDirection = ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+        arrayChargeDirection = MakeSeparator('>', TERMWIDTH/2);
         arrayRuntimeStatus = "Array fully charged in: " + 
             RenderRuntimeEstimate(
                 (arrayCapacity - arrayCurrentStoredPower), 
                 (arrayCurrentInput - arrayCurrentOutput)
             );
     } else {
-        arrayChargeDirection = "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+        arrayChargeDirection = MakeSeparator('<', TERMWIDTH/2);
         arrayRuntimeStatus = "Array fully discharged in: " +
             RenderRuntimeEstimate(
                 arrayCurrentStoredPower,
@@ -103,11 +112,8 @@ public void Main(string args)
     var terminalOutput = new StringBuilder();
 
     // Construct Output Header
-    terminalOutput.Append(
-        "==================================\n" +
-        " Battery Array Monitor v3.0: Array Status\n" +
-        "==================================\n\n"
-    );
+    terminalOutput.AppendLine(terminalBanner);
+    terminalOutput.Append('\n');
 
     // Battery Charge Progress Bar
     terminalOutput.Append(
@@ -197,6 +203,35 @@ private string RenderProgressBar(int percent, int length)
 
     return new string(progressBar);
 }
+
+// Render a horizontal line of arbitrary characters
+private string MakeSeparator(char dchar, int len)
+{
+    return new string(dchar, len);
+}
+
+// Generate terminal banner with separators
+private string MakeTerminalBanner(string title, int width)
+{
+    // Don't try to center if string is too long
+    if ( width <= title.Length) return title;
+
+    string sep = MakeSeparator('=', width - 1);
+
+    int padding = width - title.Length;
+    
+    string ctitle = title.PadLeft(
+        title.Length + padding / 2, ' ' 
+    ).PadRight(width - 1, ' ');
+
+    StringBuilder headersb = new StringBuilder();
+    headersb.AppendLine(sep);
+    headersb.AppendLine(ctitle);
+    headersb.AppendLine(sep);
+    return headersb.ToString();
+
+}
+
 #region PreludeFooter
     }
 }
