@@ -26,12 +26,17 @@ static string DISPLAYNAME = "Oxygen Farm LCD"; // Output Display Name
 
 private List<IMyGasTank> storageTanks;
 private List<IMyOxygenFarm> oxygenFarms;
+private IMyTextPanel displayScreen;
 
 // Constructor
 public Program()
 {
     // Update every 100 Ticks
     Runtime.UpdateFrequency = UpdateFrequency.Update100;
+
+    // Initialize output screen by name
+    displayScreen = GridTerminalSystem.GetBlockWithName(DISPLAYNAME) as IMyTextPanel;
+    displayScreen.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
 
     // Initialize Oxygen Storage Tanks and Farms
     storageTanks = DiscoverStorageTanks(CDATATAG);
@@ -42,7 +47,6 @@ public Program()
 public void Main(string args, UpdateType updateSource)
 {
     // Initialize Output Screen by name
-    var displayScreen = GridTerminalSystem.GetBlockWithName(DISPLAYNAME) as IMyTextPanel;
 
     // Ghetto String Templating Galore
     var strout = new StringBuilder();
@@ -84,7 +88,7 @@ public void Main(string args, UpdateType updateSource)
         );
 
     // Flush output to display
-    displayScreen.WritePublicText(strout.ToString());
+    displayScreen.WriteText(strout.ToString());
 }
 
 // On Save Callback
